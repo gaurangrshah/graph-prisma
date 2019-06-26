@@ -1,0 +1,161 @@
+# Prisma
+
+---------------------------------
+
+Prisma is similar to an ORM, and is used to model data in a database. 
+
+![image-20190625015723229](http://ww4.sinaimg.cn/large/006tNc79ly1g4dd1h1hvfj30s20eotav.jpg)
+
+![image-20190625020110744](../../../../../Library/Application Support/typora-user-images/image-20190625020110744.png)
+
+
+
+## Setup Prisma Dependencies / Tools
+
+---------------------------------
+
+First step is to setup a database, we'll be using `PostGres` which pairs very well with GraphQL. We'll be using the free-tier PostGres database available from Heroku: https://dashboard.heroku.com, Once we're signed up we can login and create an application, give it a meaningful name and then click on the `Resources` tab:
+
+![image-20190625084402011](http://ww3.sinaimg.cn/large/006tNc79ly1g4doskj9gsj30z10fmwg9.jpg)
+
+![image-20190625084422534](http://ww2.sinaimg.cn/large/006tNc79ly1g4doswn2vnj310d09zt9i.jpg)
+
+![image-20190625084439442](http://ww4.sinaimg.cn/large/006tNc79ly1g4dot80j6nj30y10ckmzd.jpg)
+
+![image-20190625084650052](http://ww2.sinaimg.cn/large/006tNc79ly1g4dovh1slqj313b0hlac6.jpg)
+
+> From the settings tab we'll need our credentials for our postgres database, and that is all we need from heroku.
+
+
+
+Next we can install a tool called `PGAdmin` - which allows us to manage our postGres database via a GUI.
+
+Download & Install: https://www.pgadmin.org/download/ — 
+
+Next we can setup the connection to our database in PGAdmin to connect it to our server that we just setup. Once installed PGAdmin can be launched and should open in our browser:
+
+![image-20190625085308130](http://ww2.sinaimg.cn/large/006tNc79ly1g4dp218cvlj313g0irtct.jpg)
+
+> pw: #hind 
+
+Next we can configure our new server by clicking `Add New Server`: 
+
+---------------------------------
+
+![image-20190625085713914](http://ww4.sinaimg.cn/large/006tNc79ly1g4dp6a69syj30ne0haq5q.jpg)
+
+Once we add the server only one of the databases listed on this shared server is ours to access - we can find it by name:
+
+![image-20190625085832622](http://ww3.sinaimg.cn/large/006tNc79ly1g4dp7ndk0tj30hi0cfwgo.jpg)
+
+
+
+Once we have our database showing up in PGAdmin, we can go ahead and intall our next tool: `Docker`: 
+
+![image-20190625090256586](http://ww4.sinaimg.cn/large/006tNc79ly1g4dpt5ka7ij30fh0i9wh9.jpg)
+
+Had to install docker toolbox to get docker working, seems the newer machines have a different setup:
+
+https://docs.docker.com/docker-for-mac/release-notes/#docker-community-edition-18060-ce-mac70-2018-07-25
+
+
+
+## Prisma Setup
+
+---------------------------------
+
+We'll start by installing prisma into our project:
+
+```shell
+yarn add prisma@1.12.0
+```
+
+test install:
+
+```shell
+prisma -v
+```
+
+initialize a new project: `/graph-prisma`
+
+```shell
+prisma init
+```
+
+![image-20190625092803297](http://ww2.sinaimg.cn/large/006tNc79ly1g4dq2cmxk4j30ha05daan.jpg)
+
+>  Follow through setup process
+>
+> 1. Connect to existing database
+>
+> 2. PostgreSQL
+>
+> 3. No
+>
+> 4. Enter the information from heroku database credentials: 
+>
+>    https://data.heroku.com/datastores/a5d61419-99f2-494d-b216-e13192848375#administration
+>
+>    ![image-20190625093210409](../../../../../Library/Application Support/typora-user-images/image-20190625093210409.png)
+>
+> 5. <u>Do not generate</u> prisma client
+>
+> 6. ![image-20190625093311081](http://ww2.sinaimg.cn/large/006tNc79ly1g4dq7omwe9j30cd0bdjsu.jpg)
+
+
+
+Prisma has automatically generated 3 core files we'll need in order to integrate our database with prisma:
+
+1. `datamodel.prisma` - defines any typeDefs that we want prisma to be aware of — similar to schema.graphql
+
+   ```js
+   type User {
+     id: ID! @id
+     name: String!
+   }
+   ```
+
+2. `prisma.yml` - a configuration file for our prisma server: 
+
+   ```js
+   endpoint: http://localhost:4466
+   datamodel: datamodel.prisma
+   ```
+
+3. `docker-compose-yml` - this is our bootstrap file for the docker container that contains all our server and database configurations:
+
+   ```js
+   version: '3'
+   services:
+     prisma:
+       image: prismagraphql/prisma:1.34
+       restart: always
+       ports:
+       - "4466:4466"
+       environment:
+         PRISMA_CONFIG: |
+           port: 4466
+           # uncomment the next line and provide the env var PRISMA_MANAGEMENT_API_SECRET=my-secret to activate cluster security
+           # managementApiSecret: my-secret
+           databases:
+             default:
+               connector: postgres
+               host: ec2-54-235-92-43.compute-1.amazonaws.com
+               database: dfihfv93clsme0
+               schema: public
+               user: fdniohmukbfwdl
+               password: 07c96292a944b2766b34f0574f0fe14e4b3b67222d55e6975275aafa6e7a6c58
+               ssl: true
+               rawAccess: true
+               port: '5432'
+               migrations: true
+   ```
+
+
+
+We'll need to make a single changes to this file before we deploy by just removing this line:
+
+```js
+
+```
+
