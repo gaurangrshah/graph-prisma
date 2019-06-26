@@ -57,3 +57,8 @@ node_modules/
 *~imageoptim*
 
 /sitemap.*
+
+
+*.env
+package-lock.json
+yarn.lock
