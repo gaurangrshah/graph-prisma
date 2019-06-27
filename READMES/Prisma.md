@@ -145,7 +145,7 @@ Prisma has automatically generated 3 core files we'll need in order to integrate
                schema: public
                user: fdniohmukbfwdl
                password: 07c96292a944b2766b34f0574f0fe14e4b3b67222d55e6975275aafa6e7a6c58
-               ssl: true
+               ssl: true /*  must always be specified  */
                rawAccess: true
                port: '5432'
                migrations: true
@@ -156,6 +156,61 @@ Prisma has automatically generated 3 core files we'll need in order to integrate
 We'll need to make a single changes to this file before we deploy by just removing this line:
 
 ```js
-
+schema: public
 ```
+
+
+
+Now we can use docker to compose our server with the settings we've specified above by running:
+
+```shell
+docker-compose up -d
+```
+
+
+
+Next we can deploy our latest changes to our prisma server:
+
+```shell
+yarn prisma deploy
+```
+
+
+
+Add deploy script to package.json:
+
+```json
+"scripts": {
+  "deploy": "prisma deploy"
+}
+```
+
+Now we can run deploy via yarn: 
+
+```shell
+yarn deploy
+```
+
+> Result:
+>
+> ```shell
+> Changes:
+> 
+>   User (Type)
+>   + Created type `User`
+>   + Created field `id` of type `ID!`
+>   + Created field `name` of type `String!`
+> ```
+>
+> 🚧 might be an issue but course files generated an updatedAt and createAt field as well.
+>
+> We can also see in the output that we have a new graphQL playground instace to query our prisma bindings:
+>
+> ```js
+> 
+> ```
+>
+> 
+
+
 
