@@ -206,11 +206,51 @@ yarn deploy
 >
 > We can also see in the output that we have a new graphQL playground instace to query our prisma bindings:
 >
-> ```js
-> 
-> ```
->
-> 
+
+
+
+
+
+## Configure and setup existing prisma db:
+
+after downloading the starter files, you can run:
+
+```shell
+yarn
+```
+
+```shell
+docker-compose up -d
+```
+
+might need to reconfigure your prisma endpoint in `prisma.yml` to match the local ip of the docker instance:
+
+```js
+# endpoint: http://localhost:4466
+endpoint: http://192.168.99.100:4466
+datamodel: datamodel.prisma
+
+```
+
+Test the endpoint by navigating to it
+
+then run
+
+```shell
+prisma deploy
+```
+
+and you should have a working graphQL playground instance. running at the above endpoint. Once we've depolyed the prisma database our docker graphQL instance will have access to that db
+
+
+
+
+
+
+
+
+
+
 
 
 

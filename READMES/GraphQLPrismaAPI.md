@@ -2,7 +2,20 @@
 
 ---------------------------------
 
-Let's start by running the playground: `http://localhost:4466`
+Currently our schema on is beng defined by the types we explictly create in `datamodel.prisma`:
+
+```js
+type User {
+  id: ID! @id
+  name: String!
+}
+```
+
+Currently the file only contains one type, the default for the `User` type, but with just this single type defined prisma gives us all the mutations and queries out of the box that we need in order to interact with our data, exposing not only our CRUD operation, but also things like filtering and sorting as well that help us handle logic and better define the data we get back. 
+
+> This is all to say, that any type we define in our datamodel, will inherit the core functionality they need just like the default `User` type
+
+Let's  explore the CRUD operations graphQL has setup for us — start by running the playground: `http://localhost:4466`
 
 Running the `createUser` Query:
 
@@ -119,4 +132,150 @@ mutation deleteUser {
   }
 }
 ```
+
+
+
+Next let's see how we can go about making some changes to the `User` type:
+
+```js
+type User {
+  id: ID! @id @unique
+  name: String!
+  email: String! @unique
+}
+```
+
+> we've added the email field to our `User` type definition, we've specified that emails are expected to be a non-nullable string, which is to say that they are required as denoted by: (`"!"`), 
+>
+> **NOTE**: we've also added the `@unique` "`directive`", a directive is way to modify the behavior of the field. Directives are typically something that we would specifically need to create in order to ensure our data functions the way we need it to. 
+>
+> However, `@unique` is in fact a directive that prisma has exposed to us. 
+>
+> **ALSO NOTE**: directives can also take arguments, 
+>
+> ```json
+> @directive(args)
+> ```
+>
+> ==but `@unique` does not take any arguments.==
+>
+> Any fields with the `@unique` directive must not match of the value of any other tiem in the same field. So two different users cannot have the same id or the same email. Both of those fields needs to be unique for each of our users.
+
+Anytime we make a change to our datamodel, we must be sure to deploy our schema again:
+
+```shell
+prisma deploy
+```
+
+> this will sync our updated datamodel with prisma, and prisma will then generate the schema that allows us to perform the queries and mutations that we need on this data.
+
+In our case, we already have existing users, so this will result in an error, because we are creating a field on our `User` type that we have made `required`, which is fine, except that we already have a user in our database, and that user wasn't required to provide an email. This is what triggers this error, it is that we already have a user in our database, that does not meet the criteria of this updated type definition. We either need to:
+
+- Add an email to the user that exists in the database
+- or delete the user and force each user for this point forward to provide an email
+
+> In our case deleting the user makes perfect sense, so that will allow us to re-deployed after we've emptied out the database of all users. We can delete the data from `PGAdmin` or by using the `deleteUser` Mutation.
+
+```shell
+prisma deploy
+```
+
+> upon successful completetion:
+>
+> ```shell
+> ➜ prisma deploy
+> Deploying service `default` to stage `default` to server `default` 2.7s
+> 
+> Changes:
+> 
+>   User (Type)
+>   + Created field `email` of type `String!` must be unique.
+> 
+> Applying changes 6.1s
+> 
+> Your Prisma endpoint is live:
+> 
+>   HTTP:  http://192.168.99.100:4466
+>   WS:    ws://192.168.99.100:4466
+> 
+> You can view & edit your data here:
+> 
+>   Prisma Admin: http://192.168.99.100:4466/_admin
+> ```
+>
+> This means our database structure has been updated to include the field: `email` of the type: `String!`
+>
+> > So now we can test this by creating a new user using `GQL`:
+> >
+> > ```js
+> > mutation createUser{
+> >   createUser(data: {
+> >     name: "Vik"
+> >     email: "vik@email.com"
+> >   }){
+> >     id
+> >     name
+> >     email
+> >   }
+> > }
+> > ```
+> >
+> > ```json
+> > {
+> >   "data": {
+> >     "createUser": {
+> >       "id": "cjxj81l8700110761v3zctcom",
+> >       "name": "Vik",
+> >       "email": "vik@email.com"
+> >     }
+> >   }
+> > }
+> > ```
+> >
+> > 
+>
+> This data should also be reflected in our PGAdmin console:
+>
+> ![image-20190630132408615](http://ww4.sinaimg.cn/large/006tNc79ly1g4jozlyz5yj30l009adgv.jpg)
+
+
+
+Note that since we've required our users to have `@unique` emails and ids, we cannot create another user with the same email:
+
+```js
+mutation createUser{
+  createUser(data: {
+    name: "Vik"
+    email: "vik@email.com"
+  }){
+    id
+    name
+    email
+  }
+}
+```
+
+```js
+{
+  "data": null,
+  "errors": [
+    {
+      "locations": [
+        {
+          "line": 2,
+          "column": 3
+        }
+      ],
+      "path": [
+        "createUser"
+      ],
+      "code": 3010,
+      "message": "A unique constraint would be violated on User. Details: Field name = email",
+      "requestId": "local:cjxj8vri3001f07610ckmh67a"
+    }
+  ]
+}
+```
+
+The error above tells us that emails must be unique.
 

@@ -1,0 +1,288 @@
+# Add New Type
+
+---------------------------------
+
+Adding a new type starts by defining the type in our `datamodel.prisma` - in this case we'll 
+
+```js
+type Post {
+  id: ID! @id @unique
+  title: String!
+  body: String!
+  published: Boolean!
+  author: User! # references the User type
+}
+```
+
+> published is a non-nullable `Boolean` - must be either true or false
+>
+> author - is a field that gets associated with the `User` who creates the post, so author will always return a `User!`
+>
+> This relationship must go both ways:
+>
+> ```js
+> type User {
+>   id: ID! @id @unique
+>   name: String!
+>   email: String! @unique
+>   posts: [Post!]!
+> }
+> ```
+>
+> we've made sure that the `User` type also knows that it can have posts associated with it, in this case, it is an array of `Post!` items.
+
+Then we can re-deploy our schema:
+
+```js
+prisma deploy
+```
+
+> which will result in a bunch of changes to the database:
+>
+> ```js
+> Changes:
+> 
+>   Post (Type)
+>   + Created type `Post`
+>   + Created field `id` of type `ID!`
+>   + Created field `title` of type `String!`
+>   + Created field `body` of type `String!`
+>   + Created field `published` of type `Boolean!`
+>   + Created field `author` of type `User!`
+> 
+>   User (Type)
+>   + Created field `posts` of type `[Post!]!`
+> 
+>   PostToUser (Relation)
+>   + Created an inline relation between `Post` and `User` in the column `author` of table `Post`
+> ```
+
+
+
+Let's test this out by creating a new post for our user:
+
+```js
+mutation createPost {
+  createPost(data: {
+  	title: "prisma post"
+    body: ""
+    published: true
+    author: {
+      connect: {
+        id: "cjxj80fao000w0761v5foydjk"
+      }
+    }
+  }){
+    id
+    title
+    published
+    author{
+      id
+      name
+    }
+  }
+}
+```
+
+> We simply need an unique identifier for that user (`name` or  `email`) in order to create a post associated with them, prisma provides a utitlity to do just that called `connect: UserWhereUniqueInput`, and what connect does is to connect (or associate) one piece of data with another. In our cases we want to connect our post to a user.
+>
+> ```json
+> {
+>   "data": {
+>     "createPost": {
+>       "id": "cjxj9ts6u002j0761e56cm260",
+>       "title": "prisma post",
+>       "published": true,
+>       "author": {
+>         "id": "cjxj80fao000w0761v5foydjk",
+>         "name": "Vik"
+>       }
+>     }
+>   }
+> }
+> ```
+>
+> As we can see we've not connected a new post to our existing user.
+>
+> **NOTE**: keep in mind that we can also create a new user to associate with our post when creating a post instead of connecting it to an existing user.
+
+
+
+
+
+- Add `Comments` type Definition: `datamodel.prisma`:
+
+  ```js
+  type Comment {
+      id: ID!
+      text: String!
+      author: User!
+      post: Post!
+  }
+  ```
+
+- re-deploy to prisma
+
+  ```js
+  Changes:
+  
+    Comment (Type)
+    + Created type `Comment`
+    + Created field `id` of type `ID!`
+    + Created field `text` of type `String!`
+    + Created field `author` of type `User!`
+    + Created field `post` of type `Post!`
+  
+    CommentToUser (Relation)
+    + Created an inline relation between `Comment` and `User` in the column `author` of table `Comment`
+  
+    CommentToPost (Relation)
+    + Created an inline relation between `Comment` and `Post` in the column `post` of table `Comment`
+  
+  Applying changes 7.8s
+  ```
+
+  
+
+- Complete the following tasks in `GQL`:
+
+  > - update the current post to be published:
+  >
+  >   ```js
+  >   mutation updatePost {
+  >     updatePost(
+  >       where: {id: "cjxj9ts6u002j0761e56cm260"}, 
+  >       data: {published: true}
+  >     ) {
+  >       id
+  >       title
+  >       published
+  >     }
+  >   }
+  >   ```
+  >
+  >   ```json
+  >   {
+  >     "data": {
+  >       "updatePost": {
+  >         "id": "cjxj9ts6u002j0761e56cm260",
+  >         "title": "prisma post",
+  >         "published": true
+  >       }
+  >     }
+  >   }
+  >   ```
+  >
+  > - create a new user
+  >
+  >   ```js
+  >   mutation createUser{
+  >     createUser(data: {
+  >       name: "tim"
+  >       email: "tim@email.com"
+  >     }){
+  >       id
+  >       name
+  >       email
+  >     }
+  >   }
+  >   ```
+  >
+  >   ```json
+  >   {
+  >     "data": {
+  >       "createUser": {
+  >         "id": "cjxjahv5b003h07618ajn7dei",
+  >         "name": "tim",
+  >         "email": "tim@email.com"
+  >       }
+  >     }
+  >   }
+  >   ```
+  >
+  > - Create a new comment for the new user on the published post
+  >
+  >   ```js
+  >   mutation createComment {
+  >     createComment(data: {
+  >       text: "This is a comment"
+  >       author: {
+  >         connect: {
+  >           id: "cjxjahv5b003h07618ajn7dei"
+  >         }
+  >       }
+  >       post:{
+  >        connect:{
+  >          id: "cjxj9ts6u002j0761e56cm260"
+  >       }
+  >       }
+  >     }) {
+  >       id
+  >       text
+  >       author{
+  >         name
+  >       }
+  >     }
+  >   }
+  >   ```
+  >
+  >   ```json
+  >   {
+  >     "data": {
+  >       "createComment": {
+  >         "id": "cjxjavu9m00440761x34d7tk7",
+  >         "text": "This is a comment",
+  >         "author": {
+  >           "name": "tim"
+  >         }
+  >       }
+  >     }
+  >   }
+  >   ```
+  >
+  >   > we've used the `connect` functionality to associate the post and the author to the comment
+  >
+  >   
+  >
+  > - fetch all comments including: comment text and author name
+  >
+  >   ```js
+  >   query comments {
+  >     comments {
+  >       id
+  >       text
+  >       author {
+  >         name
+  >       }
+  >     }
+  >   }
+  >   ```
+  >
+  >   ```json
+  >   {
+  >     "data": {
+  >       "comments": [
+  >         {
+  >           "id": "cjxjavu9m00440761x34d7tk7",
+  >           "text": "This is a comment",
+  >           "author": {
+  >             "name": "tim"
+  >           }
+  >         }
+  >       ]
+  >     }
+  >   }
+  >   ```
+  >
+  >   
+
+  
+
+  
+
+  
+
+
+
+
+
