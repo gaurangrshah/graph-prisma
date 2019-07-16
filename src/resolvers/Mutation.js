@@ -31,6 +31,8 @@ const Mutation = {
   async deleteUser(parent, args, { prisma, request }, info) {
     const userId = getUserId(request); // verifies auth token returns userId
 
+
+    alert('deleting you.')
     // deletes the matching user, and passes in info as 2nd
     return prisma.mutation.deleteUser({ where: { id: userId } }, info);
     // passes in userId from getUserId()
@@ -41,7 +43,7 @@ const Mutation = {
     // verify if the user is authenticated, return userId for authenticated users.
     if (typeof args.data.password === 'string') {
       // check if password is being updated
-      args.data.password =  await hashPassword(args.data.password);
+      args.data.password = await hashPassword(args.data.password);
     }
 
     return prisma.mutation.updateUser({
